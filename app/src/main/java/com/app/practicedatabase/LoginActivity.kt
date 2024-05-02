@@ -15,7 +15,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.dontHaveAcc.setOnClickListener {
-            startActivity(Intent(this, SignUpActivity::class.java))
+            startActivity(Intent(this,SignUpActivity::class.java))
             finish()
         }
 

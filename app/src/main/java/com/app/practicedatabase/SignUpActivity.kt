@@ -2,6 +2,7 @@ package com.app.practicedatabase
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.app.practicedatabase.database.UserDatabase
@@ -37,6 +38,12 @@ class SignUpActivity : AppCompatActivity() {
         val userEmail = binding.signupEmail.text.toString()
         val userPassword = binding.signupPassword.text.toString()
 
-        userViewModel.signUp(userName,userEmail,userPassword)
+        if (userName.isNotEmpty() && userEmail.isNotEmpty() && userPassword.isNotEmpty()) {
+            userViewModel.signUp(userName, userEmail, userPassword)
+            Toast.makeText(this, "Data Imserted Successfully",Toast.LENGTH_LONG).show()
+        }
+        else{
+            Toast.makeText(this,"Data not Inserted",Toast.LENGTH_LONG).show()
+        }
     }
 }
