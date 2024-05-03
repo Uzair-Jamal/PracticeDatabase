@@ -3,7 +3,6 @@ package com.app.practicedatabase
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -18,8 +17,6 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var userViewModel: UserViewModel
-    private lateinit var email: String
-    private lateinit var password: String
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,48 +26,43 @@ class LoginActivity : AppCompatActivity() {
 
         val userDb = UserDatabase.getInstance(this)
         val userRepository = UserRepository(userDb.userDao())
-        email = binding.email.text.toString()
-        password = binding.password.text.toString()
         auth = FirebaseAuth.getInstance()
-        userViewModel = ViewModelProvider(this,UserViewModelFactory(userRepository))[UserViewModel::class.java]
+        userViewModel =
+            ViewModelProvider(this, UserViewModelFactory(userRepository))[UserViewModel::class.java]
 
         binding.dontHaveAcc.setOnClickListener {
-            startActivity(Intent(this,SignUpActivity::class.java))
+            startActivity(Intent(this, SignUpActivity::class.java))
             finish()
         }
 
         binding.loginBtn.setOnClickListener {
-           lifecycleScope.launch { signIn() }
-            val currentUser = auth.currentUser
-            if(currentUser == null) {
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(this) { task ->
-                        if (task.isSuccessful) {
-                            Toast.makeText(this,"Successfully Logged In",Toast.LENGTH_LONG).show()
-                            startActivity(Intent(this,MainActivity::class.java))
-                        }
-                        else{
-                            Toast.makeText(this,"Not logged In",Toast.LENGTH_LONG).show()
-                        }
+            val email = binding.email.text.toString().trim()
+            val password = binding.password.text.toString().trim()
+
+            if (email.isNotEmpty() && password.isNotEmpty()) {
+                lifecycleScope.launch { signIn(email, password) }
+            } else {
+                Toast.makeText(this, "Please enter email & password", Toast.LENGTH_LONG).show()
+            }
+
+
+        }
+    }
+
+    private suspend fun signIn(email: String, password: String) {
+
+            userViewModel.signIn(email, password)
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        Toast.makeText(this, "Successfully Logged In", Toast.LENGTH_LONG).show()
+                        startActivity(Intent(this, MainActivity::class.java))
+                    } else {
+                        Toast.makeText(this, "Not logged In", Toast.LENGTH_LONG).show()
                     }
-            }
-            else{
-                startActivity(Intent(this,MainActivity::class.java))
-                finish()
-            }
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Write all details", Toast.LENGTH_LONG).show()
+                }
         }
     }
-
-   private suspend fun signIn() {
-
-        if(email.isNotEmpty() && password.isNotEmpty()){
-            userViewModel.signIn(email,password)
-            Toast.makeText(this,"Login Successfully",Toast.LENGTH_LONG).show()
-            startActivity(Intent(this,MainActivity::class.java))
-            finish()
-        }
-       else{
-           Toast.makeText(this,"Data not inserted", Toast.LENGTH_LONG).show()
-       }
-    }
-}

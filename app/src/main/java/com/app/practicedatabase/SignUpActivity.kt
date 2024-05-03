@@ -23,9 +23,6 @@ class SignUpActivity : AppCompatActivity() {
     private lateinit var userViewModel: UserViewModel
     private lateinit var auth: FirebaseAuth
     private lateinit var database: FirebaseDatabase
-    private lateinit var userName: String
-    private lateinit var userEmail: String
-    private lateinit var userPassword: String
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,61 +31,53 @@ class SignUpActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         auth = FirebaseAuth.getInstance()
-        userName = binding.signupName.text.toString().trim()
-        userEmail = binding.signupEmail.text.toString().trim()
-        userPassword = binding.signupPassword.text.toString().trim()
+
         database = Firebase.database
 
         val userDb = UserDatabase.getInstance(this)
         val userRepository = UserRepository(userDb.userDao())
-        userViewModel = ViewModelProvider(this,UserViewModelFactory(userRepository))[UserViewModel::class.java]
+        userViewModel =
+            ViewModelProvider(this, UserViewModelFactory(userRepository))[UserViewModel::class.java]
 
         binding.signupBtn.setOnClickListener {
-            lifecycleScope.launch {
-                signUp()
-            }
-            if(userName.isNotEmpty() && userEmail.isNotEmpty() && userPassword.isNotEmpty()) {
-                auth.createUserWithEmailAndPassword(userEmail, userPassword)
-                    .addOnCompleteListener(this) { task ->
-                        if (task.isSuccessful) {
-                            Toast.makeText(this, "User created successfully", Toast.LENGTH_LONG)
-                                .show()
-                            savedData()
-                            startActivity(Intent(this, LoginActivity::class.java))
-                            finish()
-                        } else {
-                            Toast.makeText(this, "User not created", Toast.LENGTH_LONG).show()
-                        }
+            val userName = binding.signupName.text.toString().trim()
+            val userEmail = binding.signupEmail.text.toString().trim()
+            val userPassword = binding.signupPassword.text.toString().trim()
 
-                    }
-            }else{
+            if (userName.isNotEmpty() && userEmail.isNotEmpty() && userPassword.isNotEmpty()) {
+                lifecycleScope.launch {
+                    signUp(userName, userEmail, userPassword)
+                }
+            } else {
                 Toast.makeText(this, "All fields are required", Toast.LENGTH_LONG).show()
-
             }
-
         }
+
         binding.haveAcc.setOnClickListener {
-            startActivity(Intent(this,LoginActivity::class.java))
+            startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
-
     }
 
-    private fun savedData() {
-        val userId = auth.currentUser!!.uid.toInt()
-        val user = UserModel(userId,userName,userEmail,userPassword)
-        val ref = database.reference
-        ref.child("users").child(userId.toString()).setValue(user)
-    }
 
-    private suspend fun signUp() {
-        if (userName.isNotEmpty() && userEmail.isNotEmpty() && userPassword.isNotEmpty()) {
-            userViewModel.signUp(userName, userEmail, userPassword)
-            Toast.makeText(this, "Data Inserted Successfully",Toast.LENGTH_LONG).show()
-            startActivity(Intent(this,LoginActivity::class.java))
-        }
-        else{
-            Toast.makeText(this,"Data not Inserted",Toast.LENGTH_LONG).show()
-        }
+    private suspend fun signUp(userName: String, userEmail: String, userPassword: String) {
+        userViewModel.signUp(userName, userEmail, userPassword)
+        auth.createUserWithEmailAndPassword(userEmail, userPassword)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser!!.uid
+                    val user = UserModel(userId, userName, userEmail, userPassword)
+                    val ref = database.reference
+                    ref.child("users").child(userId).setValue(user)
+                    Toast.makeText(this, "User created successfully", Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this, LoginActivity::class.java))
+                    finish()
+                } else {
+                    Toast.makeText(this, "User not created", Toast.LENGTH_LONG).show()
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "User failed to authenticate", Toast.LENGTH_LONG).show()
+            }
     }
 }
